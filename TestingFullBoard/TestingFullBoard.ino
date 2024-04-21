@@ -1,94 +1,145 @@
 #include <FastLED.h>
 
-#define LED_PIN1     2
-#define LED_PIN2     3
-#define LED_PIN3     4
-#define LED_PIN4     5
-#define LED_PIN5     6
-#define LED_PIN6     7
-#define LED_PIN7     8
-#define LED_PIN8     9
-#define LED_PIN9     10
-#define NUM_LEDS     9 // Change this to the number of LEDs in your strip
-
-#define BRIGHTNESS  10  // LED brightness
-
-#define BUTTON_UP_PIN    0  // Pin for the UP button
-#define BUTTON_DOWN_PIN  1  // Pin for the DOWN button
-#define BUTTON_LEFT_PIN  11  // Pin for the LEFT button
-#define BUTTON_RIGHT_PIN 12  // Pin for the RIGHT button
-
-#define BUTTON_SELECT 13 // Pin for the SELECT button
+// Define our LED PINS based off each GRID for both PLAYERS
+#define NUM_LEDS     9 // Change this to the number of LEDs in your strips
+#define BRIGHTNESS  5  // LED brightness
 
 #define COLOR_ON    CRGB::White   // Color when LED is ON
 #define COLOR_OFF   CRGB::Red   // Color when LED is OFF
 
-CRGB leds[9][NUM_LEDS];
+// Player 1 Bottom Screen
+// TOP OF SCREEN
+#define LEDPLAYER1_BOTTOMPIN1     2
+#define LEDPLAYER1_BOTTOMPIN2     3
+#define LEDPLAYER1_BOTTOMPIN3     4
+#define LEDPLAYER1_BOTTOMPIN4     5
+#define LEDPLAYER1_BOTTOMPIN5     6
+#define LEDPLAYER1_BOTTOMPIN6     7
+#define LEDPLAYER1_BOTTOMPIN7     8
+#define LEDPLAYER1_BOTTOMPIN8     9
+#define LEDPLAYER1_BOTTOMPIN9     10
+// BOTTOM OF SCREEN
 
-int currentRow = 0; // Initial row index
-int currentCol = 0; // Initial column index
+// Player 1 Top Screen
+// TOP OF SCREEN
+#define LEDPLAYER1_TOPPIN1     22
+#define LEDPLAYER1_TOPPIN2     23
+#define LEDPLAYER1_TOPPIN3     24
+#define LEDPLAYER1_TOPPIN4     25
+#define LEDPLAYER1_TOPPIN5     26
+#define LEDPLAYER1_TOPPIN6     27
+#define LEDPLAYER1_TOPPIN7     28
+#define LEDPLAYER1_TOPPIN8     29
+#define LEDPLAYER1_TOPPIN9     30
+// BOTTOM OF SCREEN
+
+// Player 2 Bottom Screen
+// TOP OF SCREEN
+#define LEDPLAYER2_BOTTOMPIN1     53
+#define LEDPLAYER2_BOTTOMPIN2     52
+#define LEDPLAYER2_BOTTOMPIN3     51
+#define LEDPLAYER2_BOTTOMPIN4     50
+#define LEDPLAYER2_BOTTOMPIN5     49
+#define LEDPLAYER2_BOTTOMPIN6     48
+#define LEDPLAYER2_BOTTOMPIN7     47
+#define LEDPLAYER2_BOTTOMPIN8     46
+#define LEDPLAYER2_BOTTOMPIN9     45
+// BOTTOM OF SCREEN
+
+// Player 2 Top Screen
+// TOP OF SCREEN
+#define LEDPLAYER2_TOPPIN1     41
+#define LEDPLAYER2_TOPPIN2     40
+#define LEDPLAYER2_TOPPIN3     39
+#define LEDPLAYER2_TOPPIN4     38
+#define LEDPLAYER2_TOPPIN5     37
+#define LEDPLAYER2_TOPPIN6     36
+#define LEDPLAYER2_TOPPIN7     35
+#define LEDPLAYER2_TOPPIN8     34
+#define LEDPLAYER2_TOPPIN9     33
+// BOTTOM OF SCREEN
+
+// Global LED arrays
+CRGB ledsPLAYER1TOP[9][NUM_LEDS];
+CRGB ledsPLAYER1BOTTOM[9][NUM_LEDS];
+CRGB ledsPLAYER2TOP[9][NUM_LEDS];
+CRGB ledsPLAYER2BOTTOM[9][NUM_LEDS];
+
 
 void setup() {
-  // Initialize the LED strip
-  FastLED.addLeds<WS2812B, LED_PIN1, GRB>(leds[0], NUM_LEDS);
-  FastLED.addLeds<WS2812B, LED_PIN2, GRB>(leds[1], NUM_LEDS);
-  FastLED.addLeds<WS2812B, LED_PIN3, GRB>(leds[2], NUM_LEDS);
-  FastLED.addLeds<WS2812B, LED_PIN4, GRB>(leds[3], NUM_LEDS);
-  FastLED.addLeds<WS2812B, LED_PIN5, GRB>(leds[4], NUM_LEDS);
-  FastLED.addLeds<WS2812B, LED_PIN6, GRB>(leds[5], NUM_LEDS);
-  FastLED.addLeds<WS2812B, LED_PIN7, GRB>(leds[6], NUM_LEDS);
-  FastLED.addLeds<WS2812B, LED_PIN8, GRB>(leds[7], NUM_LEDS);
-  FastLED.addLeds<WS2812B, LED_PIN9, GRB>(leds[8], NUM_LEDS);
+    // Initialize our LED Grids
+    
+    // Player 1 Bottom Screen
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN1, GRB>(ledsPLAYER1BOTTOM[0], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN2, GRB>(ledsPLAYER1BOTTOM[1], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN3, GRB>(ledsPLAYER1BOTTOM[2], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN4, GRB>(ledsPLAYER1BOTTOM[3], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN5, GRB>(ledsPLAYER1BOTTOM[4], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN6, GRB>(ledsPLAYER1BOTTOM[5], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN7, GRB>(ledsPLAYER1BOTTOM[6], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN8, GRB>(ledsPLAYER1BOTTOM[7], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_BOTTOMPIN9, GRB>(ledsPLAYER1BOTTOM[8], NUM_LEDS);
+    // Player 1 Top Screen
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN1, GRB>(ledsPLAYER1TOP[0], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN2, GRB>(ledsPLAYER1TOP[1], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN3, GRB>(ledsPLAYER1TOP[2], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN4, GRB>(ledsPLAYER1TOP[3], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN5, GRB>(ledsPLAYER1TOP[4], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN6, GRB>(ledsPLAYER1TOP[5], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN7, GRB>(ledsPLAYER1TOP[6], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN8, GRB>(ledsPLAYER1TOP[7], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER1_TOPPIN9, GRB>(ledsPLAYER1TOP[8], NUM_LEDS);
 
-  FastLED.setBrightness(BRIGHTNESS);
+    // Player 2 Bottom Screen
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN1, GRB>(ledsPLAYER2BOTTOM[0], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN2, GRB>(ledsPLAYER2BOTTOM[1], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN3, GRB>(ledsPLAYER2BOTTOM[2], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN4, GRB>(ledsPLAYER2BOTTOM[3], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN5, GRB>(ledsPLAYER2BOTTOM[4], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN6, GRB>(ledsPLAYER2BOTTOM[5], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN7, GRB>(ledsPLAYER2BOTTOM[6], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN8, GRB>(ledsPLAYER2BOTTOM[7], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_BOTTOMPIN9, GRB>(ledsPLAYER2BOTTOM[8], NUM_LEDS);
 
-  // Initialize button pins as INPUT with pull-up resistors
-  pinMode(BUTTON_UP_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_DOWN_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_LEFT_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_RIGHT_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_SELECT, INPUT_PULLUP);
-  lightUpLED(currentRow, currentCol); 
+    // Player 2 Top Screen
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN1, GRB>(ledsPLAYER2TOP[0], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN2, GRB>(ledsPLAYER2TOP[1], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN3, GRB>(ledsPLAYER2TOP[2], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN4, GRB>(ledsPLAYER2TOP[3], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN5, GRB>(ledsPLAYER2TOP[4], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN6, GRB>(ledsPLAYER2TOP[5], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN7, GRB>(ledsPLAYER2TOP[6], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN8, GRB>(ledsPLAYER2TOP[7], NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDPLAYER2_TOPPIN9, GRB>(ledsPLAYER2TOP[8], NUM_LEDS);
+
+
+    FastLED.setBrightness(BRIGHTNESS);
 }
 
 // LEDs begin at 
 void loop() {
-  // Move the LED based on button presses
-  if (digitalRead(BUTTON_UP_PIN) == LOW && currentRow < 8) {
-    currentRow++;
-    lightUpLED(currentRow, currentCol); 
-    delay(200); // Button debounce delay
-  } else if (digitalRead(BUTTON_DOWN_PIN) == LOW && currentRow > 0) {
-    currentRow--;
-    lightUpLED(currentRow, currentCol);
-    delay(200); // Button debounce delay
-  } else if (digitalRead(BUTTON_LEFT_PIN) == LOW && currentCol > 0) {
-    currentCol--;
-    lightUpLED(currentRow, currentCol);
-    delay(200); // Button debounce delay
-  } else if (digitalRead(BUTTON_RIGHT_PIN) == LOW && currentCol < 8) {
-    currentCol++;
-    lightUpLED(currentRow, currentCol);
-    delay(200); // Button debounce delay
-  } else if (digitalRead(BUTTON_SELECT) == LOW) {
-    lightUpLEDBlue(currentRow, currentCol);
-    delay(200); // Button debounce delay
-  }
+  lightUpLED();
 
-  // Light up the current LED
+  delay(1000);
+
+  lightdownLED();
+
+  delay(500);
+
+
   
 }
 
 // Function to light up the LED at given row and column
-void lightUpLED(int row, int col) {
+void lightUpLED() {
   // Turn off all LEDs
   FastLED.clear();
   for(int i=0; i<9;++i){
     for(int j=0;j<9;++j){
-        leds[i][j]=COLOR_OFF;
-        if((i==currentRow)&&(j==currentCol)){
-          leds[i][j]=COLOR_ON;
-        }
+        ledsPLAYER1TOP[i][j]= COLOR_ON;
+        ledsPLAYER1BOTTOM[i][j]= COLOR_ON;
+        ledsPLAYER2TOP[i][j]= COLOR_ON;
+        ledsPLAYER2BOTTOM[i][j]= COLOR_ON;
     }
   }
   // Turn on the specified LED
@@ -99,15 +150,15 @@ void lightUpLED(int row, int col) {
   }
 
   // Function to light up the LED at given row and column and turn it blue
-void lightUpLEDBlue(int row, int col) {
+void lightdownLED() {
   // Turn off all LEDs
   FastLED.clear();
   for(int i=0; i<9;++i){
     for(int j=0;j<9;++j){
-        leds[i][j]=COLOR_OFF;
-        if((i==currentRow)&&(j==currentCol)){
-          leds[i][j].b=221;
-        }
+        ledsPLAYER1TOP[i][j]= COLOR_OFF;
+        ledsPLAYER1BOTTOM[i][j]= COLOR_OFF;
+        ledsPLAYER2TOP[i][j]= COLOR_OFF;
+        ledsPLAYER2BOTTOM[i][j]= COLOR_OFF;
     }
   }
   // Turn on the specified LED
