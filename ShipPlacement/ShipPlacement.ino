@@ -1,4 +1,5 @@
 #include <FastLED.h>
+#include <LiquidCrystal_I2C.h>
 
 // Define our LED PINS based off each GRID for both PLAYERS
 #define NUM_LEDS     9 // Change this to the number of LEDs in your strips
@@ -36,10 +37,10 @@
 #define LEDPLAYER2_BOTTOMPIN2     52
 #define LEDPLAYER2_BOTTOMPIN3     51
 #define LEDPLAYER2_BOTTOMPIN4     50
-#define LEDPLAYER2_BOTTOMPIN5     49
-#define LEDPLAYER2_BOTTOMPIN6     48
-#define LEDPLAYER2_BOTTOMPIN7     47
-#define LEDPLAYER2_BOTTOMPIN8     46
+#define LEDPLAYER2_BOTTOMPIN5     48
+#define LEDPLAYER2_BOTTOMPIN6     49
+#define LEDPLAYER2_BOTTOMPIN7     46
+#define LEDPLAYER2_BOTTOMPIN8     47
 #define LEDPLAYER2_BOTTOMPIN9     45
 // BOTTOM OF SCREEN
 
@@ -60,15 +61,15 @@
 // Now Define our DPAD and SELECT buttons for each player
 
 // Player 1 Buttons 
-#define BUTTON_UP_PLAYER1    18  // Pin for the UP button 
-#define BUTTON_DOWN_PLAYER1  19  // Pin for the DOWN button
-#define BUTTON_LEFT_PLAYER1  16  // Pin for the LEFT button
-#define BUTTON_RIGHT_PLAYER1 17  // Pin for the RIGHT button
-#define BUTTON_SELECT_PLAYER1 15  // Pin for the SELECT button
+#define BUTTON_DOWN_PLAYER1    18  // Pin for the UP button  
+#define BUTTON_UP_PLAYER1  19  // Pin for the DOWN button
+#define BUTTON_RIGHT_PLAYER1  16  // Pin for the LEFT button   
+#define BUTTON_LEFT_PLAYER1 17  // Pin for the RIGHT button  
+#define BUTTON_SELECT_PLAYER1 15  // Pin for the SELECT button 
 
 // Player 2 Buttons
-#define BUTTON_UP_PLAYER2   A1  // Pin for the UP button
-#define BUTTON_DOWN_PLAYER2  A0  // Pin for the DOWN button
+#define BUTTON_DOWN_PLAYER2   A1  // Pin for the UP button
+#define BUTTON_UP_PLAYER2  A0  // Pin for the DOWN button
 #define BUTTON_LEFT_PLAYER2  A3  // Pin for the LEFT button
 #define BUTTON_RIGHT_PLAYER2  A2 // Pin for the RIGHT button
 #define BUTTON_SELECT_PLAYER2 A4 // Pin for the SELECT button
@@ -118,9 +119,13 @@ bool gridShipPLAYER2[9][NUM_LEDS];
 bool gridHitsPLAYER1[9][NUM_LEDS];
 bool gridHitsPLAYER2[9][NUM_LEDS];
 
+//LCD for user guidance when playing battleship
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 
 void setup() {
+
+    Serial.begin(9600);
     // Initialize our LED Grids
     
     // Player 1 Bottom Screen
@@ -206,6 +211,8 @@ void loop() {
             // Highlight the current LED to indicate potential starting point of the ship
             currentOrientation = ORIENTATION_NONE;
             lightUpLED(currentRow, currentCol, currentOrientation);
+
+            Serial.println("In selecting location");
             break;
 
         case SELECTING_ORIENTATION:
@@ -213,11 +220,13 @@ void loop() {
             // Implement a function to handle this (not provided in your code)
             handleOrientationChange();
             lightUpLED(currentRow, currentCol, currentOrientation);
+
+            Serial.println("in selecting orientation");
             break;
 
         case PLACING_SHIP:
             // Place the ship on the grid and check if its a legal placement
-
+            Serial.println("IN PLACING SHIP");
             // If we have a legal placement, advance to the next state or ship
             if (placeShip()) { 
                 advanceToNextShipOrState();
@@ -234,6 +243,7 @@ void loop() {
 
         case SHOOTING:
             // now that we are here, we need to call our shooting function to allow players to shoot
+            Serial.println("in shooting");
             if (currentPlayer == PLAYER1) {
                 handleTargetSelection();
             } else {
@@ -253,11 +263,19 @@ void loop() {
 
 // Function to light up the LED at given row and column based on game state
 void lightUpLED(int row, int col, Orientation orientation) {
-    // Select the correct LED array based on the current player
-    CRGB (*leds)[NUM_LEDS] = (currentPlayer == PLAYER1) ? ledsPLAYER1BOTTOM : ledsPLAYER2BOTTOM;
+    // Select the correct LED array based on the current player and state
+    // Declare the pointer to the LED array here, outside of the if-else scope
+    CRGB (*leds)[NUM_LEDS];
 
+    updateBottomLEDsBasedOnGrid();
 
-    updateBottomLEDsBasedOnGrid();    
+    // Determine which LED array to use based on game state and player
+    if (currentState == SHOOTING) {
+        leds = (currentPlayer == PLAYER1) ? ledsPLAYER1TOP : ledsPLAYER2TOP;
+    } else {
+        leds = (currentPlayer == PLAYER1) ? ledsPLAYER1BOTTOM : ledsPLAYER2BOTTOM;
+    }
+
 
     if (orientation == ORIENTATION_NONE) {
         // Light up the current LED to a different color to show selection
@@ -286,6 +304,8 @@ void lightUpLED(int row, int col, Orientation orientation) {
                 break;
         }
     }
+    // Show LEDs
+    FastLED.show();
 }
 
 // Function for updating the screens based on the input grid and player screen
@@ -306,11 +326,17 @@ void updatePlayerScreen(CRGB leds[9][NUM_LEDS], const bool grid[9][NUM_LEDS], CR
 // Function to update the bottom screens for both players
 void updateBottomLEDsBasedOnGrid() {
     // Update the bottom Screens of each player to display ships
-    if (currentPlayer == PLAYER1) {
+    if (currentPlayer == PLAYER1 && currentState != SHOOTING) {
         updatePlayerScreen(ledsPLAYER1BOTTOM, gridShipPLAYER1, COLOR_SHIP, COLOR_OFF);
     }
-    else if (currentPlayer == PLAYER2) {
+    else if (currentPlayer == PLAYER2 && currentState != SHOOTING) {
         updatePlayerScreen(ledsPLAYER2BOTTOM, gridShipPLAYER2, COLOR_SHIP, COLOR_OFF);   
+    }
+    else if (currentState == SHOOTING) {
+      updatePlayerScreen(ledsPLAYER1BOTTOM, gridShipPLAYER1, COLOR_SHIP, COLOR_OFF);
+      delay(1000);
+      updatePlayerScreen(ledsPLAYER2BOTTOM, gridShipPLAYER2, COLOR_SHIP, COLOR_OFF);
+      delay(1000);
     }
     
 }
@@ -359,16 +385,6 @@ void handleOrientationChange() {
     int buttonDown = (currentPlayer == PLAYER1) ? BUTTON_DOWN_PLAYER1 : BUTTON_DOWN_PLAYER2;
 
     // Check if we need to change our orientation in all directions so we dont start in illegal spot
-    // Switch our starting orientation to a valid orientation
-    if (currentCol + shipLength <= 9) {
-        currentOrientation = HORIZONTAL_RIGHT;
-    } else if (currentRow + shipLength <= 9) {
-        currentOrientation = VERTICAL_DOWN;
-    } else if (currentRow - shipLength + 1 >= 0) {
-        currentOrientation = VERTICAL_UP;
-    } else if (currentCol - shipLength + 1 >= 0) {
-        currentOrientation = HORIZONTAL_LEFT;
-    }
 
     // Now change the orientation of our ship and when selected, we place the ship.
     if (digitalRead(buttonLeft) == LOW) {
@@ -381,12 +397,12 @@ void handleOrientationChange() {
         if(currentCol + shipLength <= NUM_LEDS)
             currentOrientation = HORIZONTAL_RIGHT;
         delay(200); // Button debounce delay
-    } else if (digitalRead(buttonUp) == LOW) {
+    } else if (digitalRead(buttonDown) == LOW) {
         // Check if ship will go off-grid on the top
         if(currentRow - shipLength + 1 >= 0)
             currentOrientation = VERTICAL_UP;
         delay(200); // Button debounce delay
-    } else if (digitalRead(buttonLeft) == LOW) {
+    } else if (digitalRead(buttonUp) == LOW) {
         // Check if ship will go off-grid on the bottom
         if(currentRow + shipLength <= 9)
             currentOrientation = VERTICAL_DOWN;
@@ -516,6 +532,8 @@ void handleTargetSelection() {
 
     // Light up the current selection on the grid
     lightUpLED(currentRow, currentCol, ORIENTATION_NONE);  // Assuming ORIENTATION_NONE is for single cell highlight
+
+
 
     // Select the current SELECT button we should listen to
     int selectButton = (currentPlayer == PLAYER1) ? BUTTON_SELECT_PLAYER1 : BUTTON_SELECT_PLAYER2;
@@ -701,3 +719,99 @@ void handleEndGame() {
     }
 }
 
+
+void selectingLocation_LCD() {
+    int player_placing=1;
+    int player_waiting=2;
+    if(currentPlayer==PLAYER2){
+        player_placing=2;
+        player_waiting=1;
+    }
+    lcd.setCursor(0,0);
+    lcd.print('Player '+player_placing+', use D-Pad to move cursor to where you want to place, then press select');
+    lcd.setCursor(0,1);
+    lcd.print('Player '+player_waiting+'Please wait for player '+player_placing+' to place');
+}
+
+void selectingOrientation_LCD() {
+    int player_placing=1;
+    int player_waiting=2;
+    if(currentPlayer==PLAYER2){
+        player_placing=2;
+        player_waiting=1;
+    }
+    lcd.setCursor(0,0);
+    lcd.print('Player '+player_placing+', use the D-Pad to select orientation of the ship');
+    lcd.setCursor(0,1);
+    lcd.print('Player '+player_waiting+'Please wait for player '+player_placing+' to place all ships');
+}
+
+
+void selectingOrientation_LCD() {
+    int player_placing=1;
+    int player_waiting=2;
+    if(currentPlayer==PLAYER2){
+        player_placing=2;
+        player_waiting=1;
+    }
+    lcd.setCursor(0,0);
+    lcd.print('Player '+player_placing+', use the D-Pad to select orientation of the ship');
+    lcd.setCursor(0,1);
+    lcd.print('Player '+player_waiting+'Please wait for player '+player_placing+' to place all ships');
+}
+
+void overlapoutofbounds_LCD(){
+    lcd.setCursor(0,0);
+    lcd.print("Placement error: Ship overlaps or out of bounds. Please retry.");
+    lcd.setCursor(0,1);
+    lcd.print("");
+    delay(2000);
+}
+
+
+void selectingShot_LCD() {
+    int player_placing=1;
+    int player_waiting=2;
+    if(currentPlayer==PLAYER2){
+        player_placing=2;
+        player_waiting=1;
+    }
+    lcd.setCursor(0,0);
+    lcd.print('Player '+player_placing+', use the D-Pad to select where to shoot, then press select to shoot');
+    lcd.setCursor(0,1);
+    lcd.print('Player '+player_waiting+'Please wait for player '+player_placing+' to shoot');
+}
+
+
+void hitShot_LCD() {
+    int player_placing=1;
+    int player_waiting=2;
+    if(currentPlayer==PLAYER2){
+        player_placing=2;
+        player_waiting=1;
+    }
+    lcd.setCursor(0,0);
+    lcd.print('Player '+player_placing+', succusful hit');
+    lcd.setCursor(0,1);
+    lcd.print('Player '+player_waiting+', your ship got hit');
+}
+
+void missShot_LCD() {
+    int player_placing=1;
+    int player_waiting=2;
+    if(currentPlayer==PLAYER2){
+        player_placing=2;
+        player_waiting=1;
+    }
+    lcd.setCursor(0,0);
+    lcd.print('Player '+player_placing+', miss hit');
+    lcd.setCursor(0,1);
+    lcd.print('Player '+player_waiting+', you dodged a hit');
+}
+
+void endgame_LCD(int winner, int loser) {
+    lcd.setCursor(0,0);
+    lcd.print("Player "+winner+' wins');
+    lcd.setCursor(0,1);
+    lcd.print("Player "+loser+', sorry you lose');
+}
