@@ -24,7 +24,7 @@
 #define LEDPLAYER1_TOPPIN3     24
 #define LEDPLAYER1_TOPPIN4     25
 #define LEDPLAYER1_TOPPIN5     26
-#define LEDPLAYER1_TOPPIN6     27
+#define LEDPLAYER1_TOPPIN6     27 
 #define LEDPLAYER1_TOPPIN7     28
 #define LEDPLAYER1_TOPPIN8     29
 #define LEDPLAYER1_TOPPIN9     30
@@ -184,13 +184,15 @@ void setup() {
     pinMode(BUTTON_RIGHT_PLAYER2, INPUT_PULLUP);
     pinMode(BUTTON_SELECT_PLAYER2, INPUT_PULLUP);
 
-    lightUpLED(currentRow, currentCol, currentOrientation); 
-
     // Initialize grid arrays to false/0
     memset(gridShipPLAYER1, 0, sizeof(gridShipPLAYER1));
     memset(gridShipPLAYER2, 0, sizeof(gridShipPLAYER2)); 
     memset(gridHitsPLAYER1, 0, sizeof(gridHitsPLAYER1));
     memset(gridHitsPLAYER2, 0, sizeof(gridHitsPLAYER2)); 
+
+    FastLED.clear(true);
+    FastLED.show();
+    delay(1000);
 }
 
 // Main Game Loop Function
@@ -200,7 +202,9 @@ void loop() {
     switch(currentState) {
         case SELECTING_LOCATION:
             handleMovement();
+        
             // Highlight the current LED to indicate potential starting point of the ship
+            currentOrientation = ORIENTATION_NONE;
             lightUpLED(currentRow, currentCol, currentOrientation);
             break;
 
@@ -252,9 +256,8 @@ void lightUpLED(int row, int col, Orientation orientation) {
     // Select the correct LED array based on the current player
     CRGB (*leds)[NUM_LEDS] = (currentPlayer == PLAYER1) ? ledsPLAYER1BOTTOM : ledsPLAYER2BOTTOM;
 
-    // Clear only the current LED, keeping the state of other LEDs intact
-    FastLED.clear();
-    updateBottomLEDsBasedOnGrid();
+
+    updateBottomLEDsBasedOnGrid();    
 
     if (orientation == ORIENTATION_NONE) {
         // Light up the current LED to a different color to show selection
@@ -283,7 +286,6 @@ void lightUpLED(int row, int col, Orientation orientation) {
                 break;
         }
     }
-    FastLED.show(); // Update LEDs
 }
 
 // Function for updating the screens based on the input grid and player screen
@@ -304,8 +306,13 @@ void updatePlayerScreen(CRGB leds[9][NUM_LEDS], const bool grid[9][NUM_LEDS], CR
 // Function to update the bottom screens for both players
 void updateBottomLEDsBasedOnGrid() {
     // Update the bottom Screens of each player to display ships
-    updatePlayerScreen(ledsPLAYER1BOTTOM, gridShipPLAYER1, COLOR_SHIP, COLOR_OFF);
-    updatePlayerScreen(ledsPLAYER2BOTTOM, gridShipPLAYER2, COLOR_SHIP, COLOR_OFF);   
+    if (currentPlayer == PLAYER1) {
+        updatePlayerScreen(ledsPLAYER1BOTTOM, gridShipPLAYER1, COLOR_SHIP, COLOR_OFF);
+    }
+    else if (currentPlayer == PLAYER2) {
+        updatePlayerScreen(ledsPLAYER2BOTTOM, gridShipPLAYER2, COLOR_SHIP, COLOR_OFF);   
+    }
+    
 }
 
 // Function to update the top screens for both players
