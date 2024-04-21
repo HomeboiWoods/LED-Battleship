@@ -79,6 +79,8 @@
 #define COLOR_SHIP   CRGB::Blue // Color of LED where ships are
 #define COLOR_GREEN CRGB(0, 255, 0) // Full green
 
+#define ERROR_COLOR CRGB::RED 
+
 // Create enumerations of the different ships
 enum Ship { NONE, SHIP1, SHIP2, SHIP3, SHIP4 };
 
@@ -168,11 +170,20 @@ void setup() {
     FastLED.setBrightness(BRIGHTNESS);
 
     // Initialize button pins as INPUT with pull-up resistors
-    pinMode(BUTTON_UP_PIN, INPUT_PULLUP);
-    pinMode(BUTTON_DOWN_PIN, INPUT_PULLUP);
-    pinMode(BUTTON_LEFT_PIN, INPUT_PULLUP);
-    pinMode(BUTTON_RIGHT_PIN, INPUT_PULLUP);
-    pinMode(BUTTON_SELECT, INPUT_PULLUP);
+    // First Player 1 Pins
+    pinMode(BUTTON_UP_PLAYER1, INPUT_PULLUP);
+    pinMode(BUTTON_DOWN_PLAYER1, INPUT_PULLUP);
+    pinMode(BUTTON_LEFT_PLAYER1, INPUT_PULLUP);
+    pinMode(BUTTON_RIGHT_PLAYER1, INPUT_PULLUP);
+    pinMode(BUTTON_SELECT_PLAYER1, INPUT_PULLUP);
+
+    // Now Player 2 Pins
+    pinMode(BUTTON_UP_PLAYER2, INPUT_PULLUP);
+    pinMode(BUTTON_DOWN_PLAYER2, INPUT_PULLUP);
+    pinMode(BUTTON_LEFT_PLAYER2, INPUT_PULLUP);
+    pinMode(BUTTON_RIGHT_PLAYER2, INPUT_PULLUP);
+    pinMode(BUTTON_SELECT_PLAYER2, INPUT_PULLUP);
+
     lightUpLED(currentRow, currentCol, currentOrientation); 
 
     // Initialize grid arrays to false/0
@@ -182,7 +193,7 @@ void setup() {
     memset(gridHitsPLAYER2, 0, sizeof(gridHitsPLAYER2)); 
 }
 
-// LEDs begin at 
+// Main Game Loop Function
 void loop() {
 
     // Handle game state transitions and actions
@@ -201,11 +212,20 @@ void loop() {
             break;
 
         case PLACING_SHIP:
-            // Place the ship on the grid
-            placeShip();
-            // Go to the next ship or state after placing
-            // Implement logic to advance to the next ship or next game phase
-            advanceToNextShipOrState();
+            // Place the ship on the grid and check if its a legal placement
+
+            // If we have a legal placement, advance to the next state or ship
+            if (placeShip()) { 
+                advanceToNextShipOrState();
+            } 
+            
+            // Else our placement was not legal, so we need to replace
+            else {
+                // Handle failed placement
+                flashBottomGridColor(ERROR_COLOR);  // Visual feedback
+                Serial.println("Placement error: Ship overlaps or out of bounds. Please retry.");
+                currentState = SELECTING_LOCATION;  // Reset to allow correction
+            }
             break;
 
         case SHOOTING:
@@ -219,7 +239,7 @@ void loop() {
         
         case ENDGAME:
             // since we made it here, now we want to end the game and display the winner
-
+            handleEndGame();
     }
 
     // Handle select button actions - this might need to be moved or adjusted
@@ -267,10 +287,9 @@ void lightUpLED(int row, int col, Orientation orientation) {
 void handleOrientationChange() {
     int shipLength = getShipLength(currentShip);
 
-
     // Check if we need to change our orientation in all directions so we dont start in illegal spot
     // Switch our starting orientation to a valid orientation
-    if (currentCol + shipLength <= NUM_LEDS) {
+    if (currentCol + shipLength <= 9) {
         currentOrientation = HORIZONTAL_RIGHT;
     } else if (currentRow + shipLength <= 9) {
         currentOrientation = VERTICAL_DOWN;
@@ -308,31 +327,38 @@ void handleMovement() {
     // Move the LED based on button presses
     if (digitalRead(BUTTON_UP_PIN) == LOW && currentRow < 8) {
         currentRow++;
-        lightUpLED(currentRow, currentCol, currentOrientation); 
+        lightUpLED(currentRow, currentCol, ORIENTATION_NONE); 
         delay(200); // Button debounce delay
     } else if (digitalRead(BUTTON_DOWN_PIN) == LOW && currentRow > 0) {
         currentRow--;
-        lightUpLED(currentRow, currentCol, currentOrientation);
+        lightUpLED(currentRow, currentCol, ORIENTATION_NONE);
         delay(200); // Button debounce delay
     } else if (digitalRead(BUTTON_LEFT_PIN) == LOW && currentCol > 0) {
         currentCol--;
-        lightUpLED(currentRow, currentCol, currentOrientation);
+        lightUpLED(currentRow, currentCol, ORIENTATION_NONE);
         delay(200); // Button debounce delay
     } else if (digitalRead(BUTTON_RIGHT_PIN) == LOW && currentCol < 8) {
         currentCol++;
-        lightUpLED(currentRow, currentCol, currentOrientation);
+        lightUpLED(currentRow, currentCol, ORIENTATION_NONE);
         delay(200); // Button debounce delay
     }
 }
 
+// Function for handling the changes between our Placement Game states
 void handleSelection() {
-    if (digitalRead(BUTTON_SELECT) == LOW) {
-        delay(200); // Button debounce delay
+    // Select the current SELECT button we should listen to
+    int selectButton = (currentPlayer == PLAYER1) ? BUTTON_SELECT_PLAYER1 : BUTTON_SELECT_PLAYER2;
 
-        if (currentState == SELECTING_LOCATION) {
-            currentState = SELECTING_ORIENTATION;
-        } else if (currentState == SELECTING_ORIENTATION) {
-            currentState = PLACING_SHIP;
+    // Check if the SELECT button is read as low
+    if (digitalRead(selectButton) == LOW) {
+        delay(200); // Debounce
+        switch (currentState) {
+            case SELECTING_LOCATION:
+                currentState = SELECTING_ORIENTATION;
+                break;
+            case SELECTING_ORIENTATION:
+                currentState = PLACING_SHIP;
+                break;
         }
     }
 }
@@ -348,7 +374,7 @@ void handleTargetSelection(CRGB leds[9][NUM_LEDS]) {
     if (digitalRead(BUTTON_SELECT) == LOW) {
         delay(200);  // Debounce delay
         handleAttack(currentRow, currentCol);
-        updateShootingDisplays();
+        updateShootingDisplay();
     }
 }
 
@@ -414,64 +440,96 @@ int getShipLength(Ship ship) {
     }
 }
 
-void placeShip() {
+// Function for placing ships and updating the grid accordingly
+bool placeShip() {
+    // Get the length of our current ship
     int shipLength = getShipLength(currentShip);
 
+    // Get our boolean grid so we can update the correct one based off the player
+    bool *grid = (currentPlayer == PLAYER1) ? gridShipPLAYER1 : gridShipPLAYER2;
+    // Create a boolean variable if we can place ships in a valid spot
+    bool placedSuccessfully = false;
+
     // Place the ship on the grid based on the current orientation and player
-    if (currentPlayer == PLAYER1) {
-        switch (currentOrientation) {
-            case HORIZONTAL_LEFT:
-                for (int i = 0; i < shipLength; ++i) {
-                    gridPLAYER1[currentRow][currentCol - i] = true;
-                }
-                break;
-            case HORIZONTAL_RIGHT:
-                for (int i = 0; i < shipLength; ++i) {
-                    gridPLAYER1[currentRow][currentCol + i] = true;
-                }
-                break;
-            case VERTICAL_UP:
-                for (int i = 0; i < shipLength; ++i) {
-                    gridPLAYER1[currentRow - i][currentCol] = true;
-                }
-                break;
-            case VERTICAL_DOWN:
-                for (int i = 0; i < shipLength; ++i) {
-                    gridPLAYER1[currentRow + i][currentCol] = true;
-                }
-                break;
+    while (!placedSuccessfully) {
+        // Check if the ship can be placed
+        if (canPlaceShip(currentRow, currentCol, currentOrientation, shipLength, grid)) {
+            switch (currentOrientation) {
+                case HORIZONTAL_LEFT:
+                    for (int i = 0; i < shipLength; ++i) {
+                        grid[currentRow][currentCol - i] = true;
+                    }
+                    break;
+                case HORIZONTAL_RIGHT:
+                    for (int i = 0; i < shipLength; ++i) {
+                        grid[currentRow][currentCol + i] = true;
+                    }
+                    break;
+                case VERTICAL_UP:
+                    for (int i = 0; i < shipLength; ++i) {
+                        grid[currentRow - i][currentCol] = true;
+                    }
+                    break;
+                case VERTICAL_DOWN:
+                    for (int i = 0; i < shipLength; ++i) {
+                        grid[currentRow + i][currentCol] = true;
+                    }
+                    break;
+            }
+            
+            // Set that we placed our ship successfully and display our updated display on the bottom to show the ship
+            placedSuccessfully = true;
+            updateBottomLEDsBasedOnGrid();
+
+            // Return true, signifiing that a ship was placed 
+            return true;
+
+        // Else if our ship placement was not valid
+        } else {
+            // if we had an error, return false in our ship placement function
+            return false;
         }
     }
-    else if (currentPlayer == PLAYER2) {
-        switch (currentOrientation) {
-            case HORIZONTAL_LEFT:
-                for (int i = 0; i < shipLength; ++i) {
-                    gridPLAYER2[currentRow][currentCol - i] = true;
-                }
-                break;
-            case HORIZONTAL_RIGHT:
-                for (int i = 0; i < shipLength; ++i) {
-                    gridPLAYER2[currentRow][currentCol + i] = true;
-                }
-                break;
-            case VERTICAL_UP:
-                for (int i = 0; i < shipLength; ++i) {
-                    gridPLAYER2[currentRow - i][currentCol] = true;
-                }
-                break;
-            case VERTICAL_DOWN:
-                for (int i = 0; i < shipLength; ++i) {
-                    gridPLAYER2[currentRow + i][currentCol] = true;
-                }
-                break;
-        }
-    }
-    
-    // Optionally, update LED display here or elsewhere after placement
-    updateBottomLEDsBasedOnGrid();
 }
 
-void updateBottomPlayerScreen(CRGB leds[9][NUM_LEDS], const bool grid[9][NUM_LEDS]) {
+// Function for checking the validity of placing a ship
+bool canPlaceShip(int row, int col, Orientation orientation, int shipLength, const bool grid[9][NUM_LEDS]) {
+    switch (orientation) {
+        case HORIZONTAL_LEFT:
+            for (int i = 0; i < shipLength; i++) {
+                if (col - i < 0 || grid[row][col - i]) {
+                    return false; // Out of bounds or collision
+                }
+            }
+            break;
+        case HORIZONTAL_RIGHT:
+            for (int i = 0; i < shipLength; i++) {
+                if (col + i >= NUM_LEDS || grid[row][col + i]) {
+                    return false; // Out of bounds or collision
+                }
+            }
+            break;
+        case VERTICAL_UP:
+            for (int i = 0; i < shipLength; i++) {
+                if (row - i < 0 || grid[row - i][col]) {
+                    return false; // Out of bounds or collision
+                }
+            }
+            break;
+        case VERTICAL_DOWN:
+            for (int i = 0; i < shipLength; i++) {
+                if (row + i >= 9 || grid[row + i][col]) {
+                    return false; // Out of bounds or collision
+                }
+            }
+            break;
+    }
+    return true;
+}
+
+
+// Function for updating the screens based on the input grid and player screen
+void updatePlayerScreen(CRGB leds[9][NUM_LEDS], const bool grid[9][NUM_LEDS]) {
     // First clear all the LEDs so the display will be correct
     FastLED.clear();
 
@@ -485,18 +543,20 @@ void updateBottomPlayerScreen(CRGB leds[9][NUM_LEDS], const bool grid[9][NUM_LED
     FastLED.show();
 }
 
+
+
+// Function to update the bottom screens for both players
 void updateBottomLEDsBasedOnGrid() {
     // Update the bottom Screens of each player to display ships
     updatePlayerScreen(ledsPLAYER1BOTTOM, gridShipPLAYER1);
     updatePlayerScreen(ledsPLAYER2BOTTOM, gridShipPLAYER2);   
 }
 
-void updateShootingDisplays() {
+// Function to update the top screens for both players
+void updateShootingDisplay() {
     // Update our top screens when our currentState is SHOOTING to show player misses and hits
-    if (currentState == SHOOTING) {
-        updatePlayerScreen(ledsPLAYER1TOP, gridHitsPLAYER1);
-        updatePlayerScreen(ledsPLAYER2TOP, gridHitsPLAYER2);
-    }
+    updatePlayerScreen(ledsPLAYER1TOP, gridHitsPLAYER1);
+    updatePlayerScreen(ledsPLAYER2TOP, gridHitsPLAYER2);
 }
 
 void advanceToNextShipOrState() {
@@ -529,4 +589,59 @@ void advanceToNextShipOrState() {
     // Reset row and column index to start position for next ship placement
     currentRow = 0;
     currentCol = 0;
+}
+
+// Function to handle the end of the game!
+void handleEndGame() { 
+    // Set the victory and loss colors of the screens
+    CRGB winColor = CRGB::Green;
+    CRGB loseColor = CRGB::Red;
+
+    // Determine which player is the winner based off the returning of checkAllShipsSunk
+    // Check PLAYER1 first
+    bool player1Won = checkAllShipsSunk(gridShipPLAYER2, gridHitsPLAYER1);
+    // Check PLAYER2 next
+    bool player2Won = checkAllShipsSunk(gridShipPLAYER1, gridHitsPLAYER2);
+
+    // Visualize the end game on all screens based on who won the game
+    if (player1Won && !player2Won) {
+        updateEndGameDisplay(ledsPLAYER1TOP, winColor);
+        updateEndGameDisplay(ledsPLAYER1BOTTOM, winColor);
+        updateEndGameDisplay(ledsPLAYER2TOP, loseColor);
+        updateEndGameDisplay(ledsPLAYER2BOTTOM, loseColor);
+        Serial.println("Player 1 wins!");
+    } else if (player2Won && !player1Won) {
+        updateEndGameDisplay(ledsPLAYER2TOP, winColor);
+        updateEndGameDisplay(ledsPLAYER2BOTTOM, winColor);
+        updateEndGameDisplay(ledsPLAYER1TOP, loseColor);
+        updateEndGameDisplay(ledsPLAYER1BOTTOM, loseColor);
+        Serial.println("Player 2 wins!");
+    } else {
+        // In case of a tie or error, you might want to handle differently
+        Serial.println("Game error or tie!");
+    }
+}
+
+// Function to handle the displaying of the end game screens
+void updateEndGamDisplay(CRGB leds[9][NUM_LEDS], CRGB color) {
+    FastLED.clear();
+    for (int i = 0; i < 9; ++i) {
+        for (int j = 0; j < NUM_LEDS; ++j) {
+            leds[i][j] = color;
+        }
+    }
+    FastLED.show();
+}
+
+void flashBottomGridColor(CRGB color) {
+    CRGB *leds = (currentPlayer == PLAYER1) ? ledsPLAYER1BOTTOM : ledsPLAYER2BOTTOM;
+    for (int i = 0; i < 9; ++i) {
+        for (int j = 0; j < NUM_LEDS; ++j) {
+            leds[i][j] = color;
+        }
+    }
+    FastLED.show();
+    delay(500); // Delay to ensure the red flash is visible
+    FastLED.clear();
+    FastLED.show();
 }
