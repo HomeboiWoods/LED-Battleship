@@ -199,7 +199,6 @@ void setup() {
     FastLED.show();
     delay(1000);
 
-    //initializeTopScreens();
 }
 
 // Main Game Loop Function
@@ -209,7 +208,6 @@ void loop() {
     switch(currentState) {
         case SELECTING_LOCATION:
             handleMovement();
-            
 
             // Highlight the current LED to indicate potential starting point of the ship
             currentOrientation = ORIENTATION_NONE;
@@ -233,7 +231,6 @@ void loop() {
         case PLACING_SHIP:
             // Place the ship on the grid and check if its a legal placement
             Serial.println("IN PLACING SHIP");
-            //initializeTopScreens();
             // If we have a legal placement, advance to the next state or ship
             if (placeShip()) { 
                 advanceToNextShipOrState();
@@ -829,19 +826,8 @@ void selectingLocation_LCD() {
     lcd.print("Player ");
     lcd.print(player_placing);
     lcd.print(", select ");
-    /*
-    lcd.print("Player ");
-    lcd.print(player_placing);
-    lcd.print(", use D-Pad to move cursor to where you want to place, then press select");*/
     lcd.setCursor(0,1);
     lcd.print("where to place  ");
-    /*
-    lcd.print("Player ");
-    lcd.print(player_waiting);
-    lcd.print("Please wait for player ");
-     lcd.print(player_placing);
-     lcd.print(" to place");
-     */
 }
 
 void selectingOrientation_LCD() {
@@ -893,11 +879,6 @@ void selectingShot_LCD() {
 
     lcd.setCursor(0,1);
     lcd.print("where to shoot  ");
-    /*
-    lcd.setCursor(0,0);
-    lcd.print('Player '+player_placing+', use the D-Pad to select where to shoot, then press select to shoot');
-    lcd.setCursor(0,1);
-    lcd.print('Player '+player_waiting+'Please wait for player '+player_placing+' to shoot');*/
 }
 
 
@@ -931,12 +912,6 @@ void missShot_LCD() {
     lcd.print(player_placing);
     lcd.setCursor(0,1);
     lcd.print("missed hit");
-
-    /*
-    lcd.setCursor(0,0);
-    lcd.print('Player '+player_placing+', miss hit');
-    lcd.setCursor(0,1);
-    lcd.print('Player '+player_waiting+', you dodged a hit');*/
 }
 
 void endgame_LCD(int winner, int loser) {
