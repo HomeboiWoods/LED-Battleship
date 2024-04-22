@@ -199,7 +199,7 @@ void setup() {
     FastLED.show();
     delay(1000);
 
-    initializeTopScreens();
+    //initializeTopScreens();
 }
 
 // Main Game Loop Function
@@ -233,7 +233,7 @@ void loop() {
         case PLACING_SHIP:
             // Place the ship on the grid and check if its a legal placement
             Serial.println("IN PLACING SHIP");
-            initializeTopScreens();
+            //initializeTopScreens();
             // If we have a legal placement, advance to the next state or ship
             if (placeShip()) { 
                 advanceToNextShipOrState();
@@ -244,6 +244,7 @@ void loop() {
                 // Handle failed placement
                 flashBottomGridColor(ERROR_COLOR);  // Visual feedback
                 Serial.println("Placement error: Ship overlaps or out of bounds. Please retry.");
+                lcd.clear();
                 overlapoutofbounds_LCD();
                 currentState = SELECTING_LOCATION;  // Reset to allow correction
             }
@@ -538,20 +539,22 @@ void handleAttack(int row, int col, CRGB leds[9][NUM_LEDS]) {
 
     // Mark this position as attacked
     hitGrid[row][col] = true;
-
+    updateShootingDisplay();
     if (enemyGrid[row][col]) {
         // Hit
         Serial.println("Hit!");
+        lcd.clear();
         hitShot_LCD();
-        delay(3000);
+        delay(1750);
     } else {
         // Miss
+        lcd.clear();
         Serial.println("Miss");
         missShot_LCD();
+        delay(1750);
     }
 
     // Update the shooting display to show the most recent shot
-    updateShootingDisplay();
 
     // Reset the column and row index for new shots
     currentRow = 0;
@@ -593,10 +596,10 @@ void handleTargetSelection() {
 int getShipLength(Ship ship) {
     // Use a switch statement to return the length of our ship depending which one it is
     switch (ship) {
-        case SHIP1: return 1;
-        case SHIP2: return 1;
-        case SHIP3: return 1;
-        case SHIP4: return 1;
+        case SHIP1: return 4;
+        case SHIP2: return 3;
+        case SHIP3: return 3;
+        case SHIP4: return 2;
         default: return 0;
     }
 }
@@ -772,7 +775,9 @@ void handleEndGame() {
 
     // Listen for a reset command/button press
     if (digitalRead(BUTTON_SELECT_PLAYER1) == LOW || digitalRead(BUTTON_SELECT_PLAYER2) == LOW) {
+        delay(500);
         resetGame();
+
         displaySet = false;  // Ensure displaySet is reset when game is reset
     }
 }
@@ -811,7 +816,8 @@ void resetGame() {
 }
 
 void selectingLocation_LCD() {
-      lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print(" ");
     int player_placing=1;
     //int player_waiting=2;
     if(currentPlayer==PLAYER2){
@@ -839,7 +845,8 @@ void selectingLocation_LCD() {
 }
 
 void selectingOrientation_LCD() {
-      lcd.clear();
+     lcd.setCursor(0,0);
+    lcd.print(" ");
     int player_placing=1;
     int player_waiting=2;
     if(currentPlayer==PLAYER2){
@@ -859,17 +866,19 @@ void selectingOrientation_LCD() {
 
 
 void overlapoutofbounds_LCD(){
-      lcd.clear();
+      lcd.setCursor(0,0);
+    lcd.print(" ");
     lcd.setCursor(0,0);
     lcd.print("Placement error, Overlaps/");
     lcd.setCursor(0,1);
-    lcd.print("out of bounds. Please retry.");
+    lcd.print("out of bounds.");
     delay(2000);
 }
 
 
 void selectingShot_LCD() {
-      lcd.clear();
+      lcd.setCursor(0,0);
+    lcd.print(" ");
     int player_placing=1;
     //int player_waiting=2;
     if(currentPlayer==PLAYER2){
@@ -893,7 +902,8 @@ void selectingShot_LCD() {
 
 
 void hitShot_LCD() {
-      lcd.clear();
+     lcd.setCursor(0,0);
+    lcd.print(" ");
     int player_placing=1;
     //int player_waiting=2;
     if(currentPlayer==PLAYER2){
@@ -908,7 +918,8 @@ void hitShot_LCD() {
 }
 
 void missShot_LCD() {
-    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print(" ");
     int player_placing=1;
     int player_waiting=2;
     if(currentPlayer==PLAYER2){
@@ -929,11 +940,12 @@ void missShot_LCD() {
 }
 
 void endgame_LCD(int winner, int loser) {
-    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print(" ");
     lcd.setCursor(0,0);
     lcd.print("Player ");
     lcd.print(winner);
-    lcd.print(" wins");
+    lcd.print(" wins, s");
     lcd.setCursor(0,1);
-    lcd.print("Press select to restart");
+    lcd.print("elect to restart");
 }
